@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>联系单详情</title>
+    <link rel="stylesheet" type="text/css" href="../css/weui.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/iconfont/iconfont.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui-pull-refresh.css" />
+    <style>
+        .input_value {
+            display: none!important;
+        }
+        .tags {
+            background: #68b39b;
+            color: #fff;
+            border-radius: 4px;
+            margin-right: 10px;
+            padding-left: 6px;
+            padding-right: 6px;
+            font-size: 15px;
+        }
+
+        .btnBar {
+            justify-content: center;
+            margin-top: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="aui-refresh-content">
+        <div class="aui-content">
+            <div class="aui-content aui-margin-b-15">
+                <ul class="aui-list aui-form-list">
+                    <li class="aui-list-header">详情</li>
+                </ul>
+                <div class="btnBar">
+                    <button tapmode onclick="sub();" class="aui-btn aui-btn-info">提交</button>
+                    <button tapmode onclick="closeOrder();" style="margin-left: 40px;" class="aui-btn">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="weui-gallery" onclick="galleryClick();" id="gallery" style="display: none;">
+        <span class="weui-gallery__img" id="galleryImg"></span>
+        <div class="weui-gallery__opr">
+            <a href="javascript:" class="weui-gallery__del" onclick="delAlbum()">
+                <i class="weui-icon-delete weui-icon_gallery-delete"></i>
+            </a>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/aui-pull-refresh.js"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script type="text/javascript" src="../script/aui-dialog.js" ></script>
+<script type="text/javascript" src="../script/ljRotateImg.js"></script>
+<script>
+apiReady(function(){
+    getData();
+});
+
+function getData(cb) {
+    var id = api.pageParam.id;
+    apiAjax({
+        url: '/hybrid/otherOrder/' + id,
+    },function(result){
+        if (cb) cb(result.data);
+        init(result.data);
+        if (result.data.content) $('.aui-btn-info').text('更新');
+    });
+}
+
+/**
+ * 初始化界面
+ */
+function init(data){
+    $('.aui-form-list').html('<li class="aui-list-header">详情</li>');
+    var str = '';
+    var form_data = {
+        contact_name: {comment:'联系人'},
+        contact_phone: {comment:'联系电话'},
+        company: {comment:'联系单位'},
+        type: {comment:'类型'},
+        album: {comment: '照片'},
+        content: {comment:'内容'},
+        contact_time: {comment:'联系时间'},
+        create_time: {comment:'创建时间'},
+    };
+    for (var key in form_data) {
+        if (key == 'create_time') {
+            data[key] = time(data[key]);
+        }
+        var text = data[key] ? data[key] : '';
+        if (key == 'content') {
+            str += '<li class="aui-list-item">'+
+                        '<div class="aui-list-item-inner">'+
+                            '<div class="aui-list-item-label">'+form_data[key].comment+'</div>'+
+                            '<div class="aui-list-item-input"><textarea placeholder="请输入...">'+text+'</textarea></div>'+
+                        '</div>'+
+                    '</li>';
+        } else if (key == 'type') {
+            str += '<li class="aui-list-item">'+
+                        '<div class="aui-list-item-inner">'+
+                            '<div class="aui-list-item-label">'+form_data[key].comment+'</div>'+
+                            '<div class="aui-list-item-input">'+
+                                '<select name="type">'+
+                                    '<option value="电话" '+renderPurposeSelect("电话", text)+' >电话</option>'+
+                                    '<option value="见面" '+renderPurposeSelect("见面", text)+'>见面</option>'+
+                                    '<option value="电子邮件" '+renderPurposeSelect("电子邮件", text)+'>电子邮件</option>'+
+                                    '<option value="即时通讯" '+renderPurposeSelect("即时通讯", text)+'>即时通讯</option>'+
+                                    '<option value="其它" '+renderPurposeSelect("其它", text)+'>其它</option>'+
+                                '</select>'+
+                            '</div>'+
+                        '</div>'+
+                    '</li>';
+        } else if (key == 'album') {
+            var albumArr = [];
+            try {
+                data[key].split(',').forEach(function(items, index) {
+                    if (items) albumArr.push(items);
+                });
+            } catch (e) {
+                albumArr = [];
+            }
+            str += '<li class="aui-list-item">'+
+                        '<div class="aui-list-item-inner">'+
+                            '<div class="aui-list-item-label">'+form_data[key].comment+'</div>'+
+                            '<div class="aui-list-item-input">'+
+                                '<div class="weui-uploader__bd" style="margin-top: 5px;">'+
+                                    '<ul class="weui-uploader__files" id="uploaderFiles">'+renderAlbum(albumArr)+
+                                    '</ul>'+
+                                    '<div class="weui-uploader__input-box" style="border-radius: 4px;">'+
+                                        '<input id="uploaderInput" class="weui-uploader__input" type="file" accept="image/*" onchange=uploadAlbum(this); >'+
+                                    '</div>'+
+                                '</div>'+
+                            '</div>'+
+                        '</div>'+
+                    '</li>';
+        } else if (key == 'contact_time') {
+            str += '<li class="aui-list-item">'+
+                        '<div class="aui-list-item-inner">'+
+                            '<div class="aui-list-item-label">'+form_data[key].comment+'</div>'+
+                            '<div class="aui-list-item-input contact_time" onclick="openTimePick('+text+');">'+text+'</div>'+
+                        '</div>'+
+                    '</li>';
+        } else {
+            str += '<li class="aui-list-item">'+
+                        '<div class="aui-list-item-inner">'+
+                            '<div class="aui-list-item-label">'+form_data[key].comment+'</div>'+
+                            '<div class="aui-list-item-input">'+text+'</div>'+
+                        '</div>'+
+                    '</li>';
+        }
+    }
+    $('.aui-form-list').append(str);
+
+    function renderAlbum(arr) {
+        var str = '';
+        arr.forEach(function(items){
+            var url = route('/img/gallery/list_' + items);
+            var ourl = route('/img/gallery/' + items);
+            str += '<li class="weui-uploader__file" data-img="'+items+'" data-ourl="'+ourl+'" onclick="showImg(this)" style="background-image:url('+url+'); border-radius: 4px;"></li>';
+        });
+        return str;
+    }
+
+    function renderPurposeSelect(option, selected) {
+        if (option == selected) return 'selected';
+    }
+}
+
+function openTimePick(date) {
+    date = $('.contact_time').text();
+    api.openPicker({
+        type: 'date',
+        date: date,
+        title:'选择时间'
+    },function(ret, err){
+        var year = ret.year;
+        var month = ret.month;
+        var day = ret.day;
+        $('.contact_time').text(year + '-' + month + '-' + day);
+    });
+}
+
+function showImg(obj) {
+    var url = $(obj).attr('data-ourl');
+    var img = $(obj).attr('data-img');
+    $('#galleryImg').attr('style', 'background-image:url('+url+')');
+    $('#gallery').show();
+    $('.weui-gallery__del').attr('img', img);
+}
+
+function galleryClick() {
+    $('#gallery').hide();
+}
+
+function delAlbum() {
+    var album = $('.weui-gallery__del').attr('img');
+    api.confirm({
+        title: '提醒',
+        msg: '确定删除？',
+        buttons: ['确定', '取消']
+    }, function(ret, err) {
+        var index = ret.buttonIndex;
+        if (index == 2) return;
+        var id = api.pageParam.id;
+        apiAjax({
+            url: '/hybrid/otherOrder/updateAlbum/' + api.pageParam.id,
+            type: 'put',
+            data: {
+                album: album
+            }
+        },function(result){
+            api.toast({
+                msg: result.msg
+            });
+            getData();
+        });
+    });
+}
+
+function uploadAlbum(fileObj) {
+    var ele = document.getElementById('uploaderInput');
+    // var data = new FormData();
+    // data.append('files', ele.files[0]);
+    var token = localStorage.getItem('token');
+    ljDealerPhoto(fileObj, function(dataUrl){
+        api.showProgress({
+            title: '',
+            text: '正在上传',
+            modal: true
+        });
+        var data = new FormData();
+        data.append('files', dataURLtoBlob(dataUrl), 'image.jpg');
+        api.showProgress({
+            title: '',
+            text: '正在上传',
+            modal: true
+        });
+        sub(true);
+        $.ajax({
+            url: route('/hybrid/uploadImg'),
+            type: 'POST',
+            beforeSend: function(request){
+                request.setRequestHeader('token',token);
+                request.setRequestHeader('version',version);
+            },
+            data: data,
+    		dataType:"json",
+            cache: false,
+            contentType: false, //不可缺参数
+            processData: false, //不可缺参数
+            success: function(data) {
+                var album = data.data[0].filename;
+                apiAjax({
+                    url: '/hybrid/otherOrder/updateAlbum/' + api.pageParam.id,
+                    type: 'put',
+                    data: {
+                        album: album
+                    }
+                },function(result){
+                    api.hideProgress();
+                    api.toast({
+                        msg: result.msg
+                    });
+                    getData();
+                });
+            },
+            error: function(err) {
+                log(err);
+            }
+        });
+    });
+}
+
+function sub(notJump) {
+    var text = $('textArea').val();
+    var type = $('select[name=type]').val();
+    var contact_time = $('.contact_time').text();
+    var id = api.pageParam.id;
+    apiAjax({
+        url: '/hybrid/otherOrder/' + id,
+        type: 'put',
+        data: {
+            content: text,
+            type: type,
+            contact_time: contact_time,
+        }
+    },function(result){
+        api.toast({
+            msg: result.msg
+        });
+        getData(function(data){
+            api.execScript({
+                name: 'root',
+                frameName: 'otherOrders',
+                script: 'updateItem("'+data.id+'", "'+data.content+'");'
+            });
+        });
+        if (notJump) return;
+        setTimeout(function(){
+            api.closeWin();
+        }, 1000);
+    });
+}
+
+function closeOrder() {
+    api.confirm({
+        title: '提醒',
+        msg: '确定删除？',
+        buttons: ['确定', '取消']
+    }, function(ret, err) {
+        var index = ret.buttonIndex;
+        if (index == 2) return;
+        var id = api.pageParam.id;
+        apiAjax({
+            url: '/hybrid/otherOrder/' + id,
+            type: 'delete',
+        },function(result){
+            api.toast({
+                msg: result.msg
+            });
+            api.execScript({
+                name: 'root',
+                frameName: 'otherOrders',
+                script: 'originState();'
+            });
+            setTimeout(function(){
+                api.closeWin();
+            }, 1000);
+        });
+    });
+}
+</script>
+</html>

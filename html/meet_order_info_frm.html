@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>联系单详情</title>
+    <link rel="stylesheet" type="text/css" href="../css/weui.min.css" />
+    <link rel="stylesheet" type="text/css" href="../css/api.css" />
+    <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+    <link rel="stylesheet" type="text/css" href="../css/iconfont/iconfont.css" />
+    <link rel="stylesheet" type="text/css" href="../css/aui-pull-refresh.css" />
+    <style>
+        .input_value {
+            display: none !important;
+        }
+
+        .tags {
+            background: #68b39b;
+            color: #fff;
+            border-radius: 4px;
+            margin-right: 10px;
+            padding-left: 6px;
+            padding-right: 6px;
+            font-size: 15px;
+        }
+
+        .btnBar {
+            justify-content: center;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .aui-form-list .onlyService {
+            display: none;
+        }
+
+        #distpicker {
+            display: flex;
+        }
+
+        #distpicker .form-group {
+            margin-top: -25px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="aui-refresh-content">
+        <div class="aui-content">
+            <div class="aui-content aui-margin-b-15">
+                <ul class="aui-list aui-form-list" id="formWrap">
+                    <li class="aui-list-header">详情</li>
+                </ul>
+                <div class="btnBar">
+                    <!-- <button tapmode onclick="sub();" class="aui-btn aui-btn-info">提交</button>
+                    <button tapmode onclick="closeOrder();" style="margin-left: 40px;" class="aui-btn">删除</button> -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="weui-gallery" onclick="galleryClick();" id="gallery" style="display: none;">
+        <span class="weui-gallery__img" id="galleryImg"></span>
+        <div class="weui-gallery__opr">
+            <a href="javascript:" class="weui-gallery__del" onclick="delAlbum()">
+                <i class="weui-icon-delete weui-icon_gallery-delete"></i>
+            </a>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="https://res.wx.qq.com/open/libs/weuijs/1.0.0/weui.min.js"></script>
+<script src="../script/aui-pull-refresh.js"></script>
+<script type="text/javascript" src="../script/exif.js"></script>
+<script type="text/javascript" src="../script/ljRotateImg.js"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script type="text/javascript" src="../script/distpicker.data.js"></script>
+<script type="text/javascript" src="../script/distpicker.js"></script>
+<script type="text/javascript" src="../script/aui-dialog.js"></script>
+<script>
+    var map;
+    var solutionTypeArr = [];
+    var directorArr = [];
+    var searchResultArr = [];
+    var company, State, Purpose;
+    var timer;
+    apiReady(function () {
+        map = api.require('bMap');
+        try {
+            map.initMapSDK(function (ret) {
+                
+            });
+        } catch (e) {
+
+        }
+        getSolutionType(function () {
+            getDirectrListByLevel(function () {
+                getContacts(function () {
+                    getData();
+                });
+            });
+        });
+    });
+
+    function getData(cb) {
+        var id = api.pageParam.id;
+        apiAjax({
+            url: '/hybrid/meetOrder/' + id,
+        }, function (result) {
+            if (cb) cb(result.data);
+            init(result.data);
+            company = result.data.company;
+            State = result.data.state;
+            Purpose = result.data.purpose;
+            if (result.data.purpose == '上门服务') $('.onlyService').show();
+            // 按钮显示
+            btnGroupShow();
+        });
+    }
+
+    function getContacts(cb) {
+        var company = api.pageParam.company;
+        apiAjax({
+            url: '/hybrid/searchCompany',
+            data: {
+                keywords: company
+            }
+        }, function (result) {
+            searchResultArr = result.data[0].contactArr;
+            cb();
+        });
+    }
+
+    function btnGroupShow() {
+        var btnStr = '';
+        if (State == 0) {
+            if (Purpose == '上门服务') {
+                btnStr += '<button tapmode onclick="sub();" class="aui-btn aui-btn-info">更新</button>';
+                btnStr += '<button tapmode onclick="checkToMember();" style="margin-left: 40px;" class="aui-btn">发送服务回执</button>';
+                btnStr += '<button tapmode onclick="closeOrder();" style="margin-left: 40px;" class="aui-btn">删除</button>';
+            } else {
+                btnStr += '<button tapmode onclick="sub();" class="aui-btn aui-btn-info">更新</button>';
+                btnStr += '<button tapmode onclick="checkToDirector();" style="margin-left: 40px;" class="aui-btn">提交审核</button>';
+                btnStr += '<button tapmode onclick="closeOrder();" style="margin-left: 40px;" class="aui-btn">删除</button>';
+            }
+        } else if (State == 3) {
+            // btnStr += '<button tapmode onclick="checkToDirector();" class="aui-btn">提交审核</button>';
+            btnStr += '<button tapmode onclick="recallFromMember();" class="aui-btn">撤回</button>';
+        } else if (State == 6) {
+            btnStr += '<button tapmode onclick="recallFromDirector();" class="aui-btn">撤回</button>';
+        } else if (State == 9) {
+            btnStr += '<button tapmode onclick="reStart();" class="aui-btn">重新填写</button>';
+        } else if (State == 12) {
+
+        }
+        $('.btnBar').html(btnStr);
+    }
+
+    function getSolutionType(cb) {
+        $.ajax({
+            url: apiRoute('/vtc/cfgTemp/machineType'),
+            type: 'get',
+            dataType: 'json',
+            timeout: 30000,
+            success: function (res) {
+                try {
+                    solutionTypeArr = res.data.flat(3);
+                } catch (e) {
+                    solutionTypeArr = res.data;
+                }
+                cb();
+            },
+        });
+    }
+
+    function getDirectrListByLevel(cb) {
+        apiAjax({
+            url: '/home/staff/getListByLevel',
+            data: {
+                level: getLevel()
+            }
+        }, function (res) {
+            directorArr = res.data;
+            cb();
+        });
+    }
+
+    /**
+     * 初始化界面
+     */
+    function init(data) {
+        $('.aui-form-list').html('<li class="aui-list-header">详情</li>');
+        var str = '';
+        var form_data = {
+            contact_name: { comment: '联系人' },
+            contact_phone: { comment: '联系电话' },
+            company: { comment: '联系单位' },
+            director: { comment: '指派人' },
+            purpose: { comment: '目的' },
+            album: { comment: '照片' },
+            demand: { comment: '客户需求' },
+            content: { comment: '服务内容及结果' },
+            addr: { comment: '见面地点' },
+            sale_tag: { comment: '服务类型' },
+            solution_tag: { comment: '解决方案' },
+            sn: { comment: '序列号' },
+            // is_contract_server: { comment: '合同服务' },
+            contract_no: { comment: '合同号' },
+            contact_time: { comment: '联系日期' },
+            start_time: { comment: '开始时间' },
+            end_time: { comment: '结束时间' },
+            // create_time: {comment:'创建日期'},
+        };
+        for (var key in form_data) {
+            if (key == 'create_time') {
+                data[key] = time(data[key]);
+            }
+            var text = data[key] ? data[key] : '';
+            if (key == 'content') {
+                str += '<li class="aui-list-item">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label" style="white-space: pre-wrap;line-height: 26px;">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input"><textarea name="content" placeholder="客观描述自己在现场具体执行了哪些操作，配合照片，达到了什么样的效果，是否解决问题...">' + text + '</textarea></div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key === 'demand') {
+                str += '<li class="aui-list-item onlyService">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label" style="white-space: pre-wrap;line-height: 26px;">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input"><textarea name="demand" placeholder="简述客户需求，描述自己为什么提供服务...">' + text + '</textarea></div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'sn') {
+                str += '<li class="aui-list-item onlyService">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label" style="white-space: pre-wrap;line-height: 26px;">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input"><input onblur="searchNoBySn();" type="text" name="sn" placeholder="请输入..." value="'+text+'" /></div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'purpose') {
+                str += '<li class="aui-list-item">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input">' +
+                    '<select name="purpose" onchange="changePurpose();">' +
+                    '<option value="上门服务" ' + renderPurposeSelect("上门服务", text) + ' >上门服务</option>' +
+                    '<option value="拜访" ' + renderPurposeSelect("拜访", text) + '>拜访</option>' +
+                    '<option value="开会" ' + renderPurposeSelect("开会", text) + '>开会</option>' +
+                    '<option value="偶遇" ' + renderPurposeSelect("偶遇", text) + '>偶遇</option>' +
+                    '<option value="其它" ' + renderPurposeSelect("其它", text) + '>其它</option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'album') {
+                var albumArr = [];
+                try {
+                    data[key].split(',').forEach(function (items, index) {
+                        if (items) albumArr.push(items);
+                    });
+                } catch (e) {
+                    albumArr = [];
+                }
+                str += '<li class="aui-list-item">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input">' +
+                    '<div class="weui-uploader__bd" style="margin-top: 5px;">' +
+                    '<ul class="weui-uploader__files" id="uploaderFiles">' + renderAlbum(albumArr) +
+                    '</ul>' +
+                    '<div class="weui-uploader__input-box" style="border-radius: 4px;">' +
+                    '<input id="uploaderInput" class="weui-uploader__input" type="file" accept="image/*" capture="camera" onchange=uploadAlbum(this); >' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'director') {
+                str += '<li class="aui-list-item">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input">' +
+                    '<select name="director">' + renderDirector(text) + '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'sale_tag') {
+                str += '<li class="aui-list-item onlyService">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input">' +
+                    '<select name="sale_tag">' + renderSaleTag(text) + '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'solution_tag') {
+                str += '<li class="aui-list-item onlyService">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input">' +
+                    '<select name="solution_tag">' + renderSolution(text) + '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '</li>';
+            }
+            //  else if (key == 'is_contract_server') {
+            //     str += '<li class="aui-list-item onlyService">' +
+            //         '<div class="aui-list-item-inner">' +
+            //         '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+            //         '<div class="aui-list-item-input">' +
+            //         '<select name="is_contract_server" onchange="isContractChange();">' + renderIsContract(text) + '</select>' +
+            //         '</div>' +
+            //         '</div>' +
+            //         '</li>';
+            // }
+            else if (key == 'contract_no') {
+                str += '<li class="aui-list-item onlyService">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label" style="white-space: pre-wrap;line-height: 26px;">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input"><input type="text" name="contract_no" disabled value="'+text+'" /></div>' +
+                    '</div>' +
+                    '</li>';
+            }
+             else if (key == 'start_time' || key == 'end_time') {
+                str += '<li class="aui-list-item onlyService">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input '+key+'">' + text + '</div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'contact_name') {
+                str += '<li class="aui-list-item">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input">' +
+                    '<select onchange="contactNameChange();" name="contact_name">' + renderContact(text, data['contact_phone']) + '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'contact_phone') {
+                str += '<li class="aui-list-item">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input contact_phone_block">' + text + '</div>' +
+                    '</div>' +
+                    '</li>';
+            } else if (key == 'addr') {
+                var province = text.split(',')[0];
+                var town = text.split(',')[1];
+                province = province ? province : '';
+                town = town ? town : '';
+                str += '<li class="aui-list-item">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input">' +
+                    '<div id="distpicker">' +
+                    '<div class="form-group">' +
+                    '<label class="sr-only" for="province3"></label>' +
+                    '<select class="form-control" id="addr_province" data-province="' + province + '"></select>' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                    '<label class="sr-only" for="city3"></label>' +
+                    '<select class="form-control" id="addr_town" data-city="' + town + '"></select>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</li>';
+                // } else if (key == 'start_time') {
+                //     text = text ? text : hoursTime();
+                //     str += '<li class="aui-list-item onlyService">'+
+                //                 '<div class="aui-list-item-inner">'+
+                //                     '<div class="aui-list-item-label">'+form_data[key].comment+'</div>'+
+                //                     '<div class="aui-list-item-input start_time" onclick="openStartTimePick();">'+text+'</div>'+
+                //                 '</div>'+
+                //             '</li>';
+                // } else if (key == 'end_time') {
+                //     text = text ? text : hoursTime();
+                //     str += '<li class="aui-list-item onlyService">'+
+                //                 '<div class="aui-list-item-inner">'+
+                //                     '<div class="aui-list-item-label">'+form_data[key].comment+'</div>'+
+                //                     '<div class="aui-list-item-input end_time" onclick="openEndTimePick();">'+text+'</div>'+
+                //                 '</div>'+
+                //             '</li>';
+            } else {
+                str += '<li class="aui-list-item">' +
+                    '<div class="aui-list-item-inner">' +
+                    '<div class="aui-list-item-label">' + form_data[key].comment + '</div>' +
+                    '<div class="aui-list-item-input">' + text + '</div>' +
+                    '</div>' +
+                    '</li>';
+            }
+        }
+        $('.aui-form-list').append(str);
+        if (data.state != 0) {
+            // 表单拒绝点击修改
+            setTimeout(function () {
+                $('#formWrap').find('select,input,textarea').attr('disabled', true);
+            }, 100);
+        }
+
+        $('#distpicker').distpicker();
+
+        function renderAlbum(arr) {
+            var str = '';
+            arr.forEach(function (items) {
+                var url = route('/img/gallery/list_' + items);
+                var ourl = route('/img/gallery/' + items);
+                str += '<li class="weui-uploader__file" data-img="' + items + '" data-ourl="' + ourl + '" onclick="showImg(this)" style="background-image:url(' + url + '); border-radius: 4px;"></li>';
+            });
+            return str;
+        }
+
+        function renderPurposeSelect(option, selected) {
+            if (option == selected) return 'selected';
+        }
+
+        function renderSaleTag(name) {
+            var str = '';
+            ['售前', '售中', '售后'].forEach(function (items) {
+                if (name == items) {
+                    str += '<option value="' + items + '" selected>' + items + '</option>';
+                } else {
+                    str += '<option value="' + items + '">' + items + '</option>';
+                }
+            });
+            return str;
+        }
+
+        function renderContact(name, _tel) {
+            var str = '';
+            searchResultArr.forEach(function (items) {
+                if (name == items.name && _tel == items.phone) {
+                    str += '<option value="' + items.name + '-'+ items.phone +'" selected>' + items.name + '</option>';
+                } else {
+                    str += '<option value="' + items.name + '-'+ items.phone +'">' + items.name + '</option>';
+                }
+            });
+            return str;
+        }
+
+        function renderIsContract(name) {
+            var str = '';
+            [{ name: '是', value: 1 }, { name: '否', value: 0 }].forEach(function (items) {
+                if (name == items.value) {
+                    str += '<option value="' + items.value + '" selected>' + items.name + '</option>';
+                } else {
+                    str += '<option value="' + items.value + '">' + items.name + '</option>';
+                }
+            });
+            return str;
+        }
+
+        function renderSolution(name) {
+            var str = '';
+            solutionTypeArr.forEach(function (items) {
+                if (name == items.id) {
+                    str += '<option value="' + items.id + '" selected>' + items.name + '</option>';
+                } else {
+                    str += '<option value="' + items.id + '">' + items.name + '</option>';
+                }
+            });
+            return str;
+        }
+
+        function renderDirector(user_id) {
+            var str = '';
+            directorArr.forEach(function (items) {
+                str += isSelected(items);
+            });
+            return str;
+
+            function isSelected(items) {
+                if (items.user_id == user_id) return '<option value="' + items.user_id + '" selected>' + items.user_name + '</option>';
+                return '<option value="' + items.user_id + '">' + items.user_name + '</option>';
+            }
+        }
+    }
+
+    function contactNameChange() {
+        var v = $('select[name=contact_name]').val().split('-')[0];
+        var _p = $('select[name=contact_name]').val().split('-')[1];
+        var phone;
+        searchResultArr.forEach(function (items, index) {
+            if (items.name == v && _p == items.phone) {
+                phone = items.phone;
+            }
+        });
+        $('.contact_phone_block').text(phone);
+    }
+
+    function inputContractNo() {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            var v = $('textarea[name=contract_no]').val();
+            apiAjax({
+                url: '/hybrid/searchContractNo',
+                data: {
+                    keywords: v,
+                    company: company,
+                },
+            }, function (result) {
+                if (result.length === 0) {
+                    api.toast({
+                        msg: '没有更多了'
+                    });
+                    return;
+                }
+                var pickArr = [];
+                for (var i = 0; i < result.length; i++) {
+                    pickArr.push({
+                        label: result[i],
+                        value: result[i]
+                    });
+                }
+                weui.picker(pickArr, {
+                    onConfirm: function (result) {
+                        var selectNo = result[0];
+                        $('textarea[name=contract_no]').val(selectNo);
+                        $('textarea[name=contract_no]').attr('data-v', selectNo);
+                    }
+                });
+            });
+        }, 500);
+    }
+
+    function isContractChange() {
+        var v = $('select[name=is_contract_server]').val();
+        if (v == 0) {
+            $('.contract_no_block').hide();
+        } else {
+            $('.contract_no_block').show();
+        }
+    }
+
+    function openTimePick(date) {
+        if (State != 0) return;
+        date = $('.contact_time').text();
+        api.openPicker({
+            type: 'date',
+            date: date,
+            title: '选择日期'
+        }, function (ret, err) {
+            var year = ret.year;
+            var month = ret.month;
+            var day = ret.day;
+            $('.contact_time').text(year + '-' + month + '-' + day);
+        });
+    }
+
+    function openStartTimePick() {
+        if (State != 0) return;
+        var date = $('.start_time').text();
+        var dateArr = date.split(':');
+        api.openPicker({
+            type: 'time',
+            date: dateArr[0] + ':' + dateArr[1],
+            title: '选择现场开始时间'
+        }, function (ret, err) {
+            var h = ret.hour < 10 ? '0' + ret.hour : ret.hour;
+            var m = ret.minute < 10 ? '0' + ret.minute : ret.minute;
+            $('.start_time').text(h + ':' + m + ':00');
+        });
+    }
+
+    function openEndTimePick() {
+        if (State != 0) return;
+        var date = $('.end_time').text();
+        var dateArr = date.split(':');
+        api.openPicker({
+            type: 'time',
+            date: dateArr[0] + ':' + dateArr[1],
+            title: '选择现场结束时间'
+        }, function (ret, err) {
+            var h = ret.hour < 10 ? '0' + ret.hour : ret.hour;
+            var m = ret.minute < 10 ? '0' + ret.minute : ret.minute;
+            $('.end_time').text(h + ':' + m + ':00');
+        });
+    }
+
+    function changePurpose() {
+        var purpose = $('select[name=purpose]').val();
+        if (purpose == '上门服务') {
+            $('.onlyService').show();
+        } else {
+            $('.onlyService').hide();
+        }
+        Purpose = purpose;
+        btnGroupShow();
+    }
+
+    function showImg(obj) {
+        if (State != 0) return;
+        var url = $(obj).attr('data-ourl');
+        var img = $(obj).attr('data-img');
+        $('#galleryImg').attr('style', 'background-image:url(' + url + ')');
+        $('#gallery').show();
+        $('.weui-gallery__del').attr('img', img);
+    }
+
+    function galleryClick() {
+        $('#gallery').hide();
+    }
+
+    function delAlbum() {
+        var album = $('.weui-gallery__del').attr('img');
+        api.confirm({
+            title: '提醒',
+            msg: '确定删除？',
+            buttons: ['确定', '取消']
+        }, function (ret, err) {
+            var index = ret.buttonIndex;
+            if (index == 2) return;
+            var id = api.pageParam.id;
+            apiAjax({
+                url: '/hybrid/meetOrder/updateAlbum/' + api.pageParam.id,
+                type: 'put',
+                data: {
+                    album: album
+                }
+            }, function (result) {
+                api.toast({
+                    msg: result.msg
+                });
+                getData();
+            });
+        });
+    }
+
+    function getLocation(cb) {
+        map.getLocation({
+            accuracy: '100m',
+            autoStop: true,
+            filter: 1
+        }, function (ret, err) {
+            map.getNameFromCoords({
+                lon: ret.lon,
+                lat: ret.lat
+            }, function (ret, err) {
+                var province = ret.province;
+                var city = ret.city;
+                cb({
+                    province: province,
+                    city: city,
+                });
+            });
+        });
+    }
+
+    function uploadAlbum(fileObj) {
+        getLocation(function (position) {
+            var ele = document.getElementById('uploaderInput');
+            var token = localStorage.getItem('token');
+            ljDealerPhoto(fileObj, function(dataUrl){
+                api.showProgress({
+                    title: '',
+                    text: '正在上传',
+                    modal: true
+                });
+                var data = new FormData();
+                data.append('files', dataURLtoBlob(dataUrl), 'image.jpg');
+                $.ajax({
+                    url: route('/hybrid/uploadImg'),
+                    // url: route('/hybrid/uploadImgBase64'),
+                    type: 'POST',
+                    beforeSend: function (request) {
+                        request.setRequestHeader('token', token);
+                        request.setRequestHeader('version', version);
+                    },
+                    data: data,
+                    // data: {
+                    //     file: dataUrl,
+                    // },
+                    dataType: "json",
+                    cache: false,
+                    contentType: false, //不可缺参数
+                    processData: false, //不可缺参数
+                    success: function (data) {
+                        var album = data.data[0].filename;
+                        apiAjax({
+                            url: '/hybrid/meetOrder/updateAlbum/' + api.pageParam.id,
+                            type: 'put',
+                            data: {
+                                album: album,
+                                addr: position.province + ',' + position.city,
+                            }
+                        }, function (result) {
+                            api.hideProgress();
+                            sub(true, true);
+                        });
+                    },
+                    error: function (err) {
+                        log(err);
+                    }
+                });
+            });
+        });
+    }
+
+    function searchNoBySn() {
+        const sn = $('input[name=sn]').val();
+        if (!sn) {
+            $('input[name=contract_no]').val('');
+            return;
+        }
+        apiAjax({
+            url: '/hybrid/searchNoBySn',
+            data: {
+                sn: sn,
+            }
+        }, function (result) {
+            if (result.code == -1) {
+                api.toast({
+                    msg: result.msg,
+                });
+                $('input[name=contract_no]').val('');
+            } else {
+                $('input[name=contract_no]').val(result.data);
+            }
+        });
+    }
+
+    function getFormData() {
+        var contact_name = $('select[name="contact_name"]').val().split('-')[0];
+        var contact_phone = $('.contact_phone_block').text();
+        var demand = $('textArea[name=demand]').val();
+        var content = $('textArea[name=content]').val();
+        var addr = $('textArea[name=addr]').val();
+        var purpose = $('select[name="purpose"]').val();
+        // var contact_time = $('.contact_time').text();
+        var director = $('select[name=director]').val();
+        var sale_tag = $('select[name=sale_tag]').val();
+        var solution_tag = $('select[name=solution_tag]').val();
+        var is_contract_server = $('select[name=is_contract_server]').val();
+        var contract_no = $('input[name=contract_no]').val();
+        var addr_province = $('#addr_province').val();
+        var addr_town = $('#addr_town').val();
+        var addr = addr_province + ',' + addr_town;
+        var sn = $('input[name=sn]').val();
+        // var start_time = $('.start_time').text();
+        // var end_time = $('.end_time').text();
+        var id = api.pageParam.id;
+        var formData = {
+            contact_name: contact_name,
+            contact_phone: contact_phone,
+            content: content,
+            addr: addr,
+            purpose: purpose,
+            // contact_time: contact_time,
+            director: director,
+            sale_tag: sale_tag,
+            solution_tag: solution_tag,
+            is_contract_server: is_contract_server,
+            contract_no: contract_no,
+            sn: sn,
+            demand: demand,
+            // start_time: start_time,
+            // end_time: end_time,
+        };
+        return formData;
+    }
+
+    function sub(notJump, delAddr) {
+        var id = api.pageParam.id;
+        var formData = getFormData();
+        var user_id = localStorage.getItem('user_id');
+        if (user_id == formData.director) {
+            api.toast({
+                msg: '指派人不能为自己'
+            });
+            return;
+        }
+        if (delAddr) delete formData.addr;
+        apiAjax({
+            url: '/hybrid/meetOrder/' + id,
+            type: 'put',
+            data: formData
+        }, function (result) {
+            api.toast({
+                msg: result.msg
+            });
+            getData(function (data) {
+                api.execScript({
+                    name: 'root',
+                    frameName: 'meetOrders',
+                    script: 'updateItem("' + data.id + '", "' + data.purpose + '", "' + data.state + '");'
+                });
+            });
+            if (notJump) return;
+            setTimeout(function () {
+                api.closeWin();
+            }, 1000);
+        });
+    }
+
+    function closeOrder() {
+        api.confirm({
+            title: '提醒',
+            msg: '确定删除？',
+            buttons: ['确定', '取消']
+        }, function (ret, err) {
+            var index = ret.buttonIndex;
+            if (index == 2) return;
+            var id = api.pageParam.id;
+            apiAjax({
+                url: '/hybrid/meetOrder/' + id,
+                type: 'delete',
+            }, function (result) {
+                api.toast({
+                    msg: result.msg
+                });
+                api.execScript({
+                    name: 'root',
+                    frameName: 'meetOrders',
+                    script: 'originState();'
+                });
+                setTimeout(function () {
+                    api.closeWin();
+                }, 1000);
+            });
+        });
+    }
+
+    // 发送给会员回执
+    function checkToMember() {
+        var id = api.pageParam.id;
+        var formData = getFormData();
+        var user_id = localStorage.getItem('user_id');
+        if (user_id == formData.director) {
+            api.toast({
+                msg: '指派人不能为自己'
+            });
+            return;
+        }
+        if (!formData.demand) {
+            api.toast({
+                msg: '客户需求不能为空',
+            });
+            return;
+        }
+        if (!formData.content) {
+            api.toast({
+                msg: '内容不能为空',
+            });
+            return;
+        }
+        if (!formData.sn) {
+            api.toast({
+                msg: '序列号不能为空',
+            });
+            return;
+        }
+        // if (!formData.contract_no) {
+        //     api.toast({
+        //         msg: '合同号不能为空',
+        //     });
+        //     return;
+        // }
+        if ($('.end_time').text() == '') {
+            api.toast({
+                msg: '结束时间不能为空',
+            });
+            return;
+        }
+        apiAjax({
+            url: '/hybrid/checkTomember/' + id,
+            type: 'put',
+            data: formData
+        }, function (result) {
+            api.toast({
+                msg: result.msg
+            });
+            getData(function (data) {
+                api.execScript({
+                    name: 'root',
+                    frameName: 'meetOrders',
+                    script: 'updateItem("' + data.id + '", "' + data.purpose + '", "' + data.state + '");'
+                });
+            });
+        });
+    }
+
+    // 提交给指派人审核
+    function checkToDirector() {
+        var id = api.pageParam.id;
+        var formData = getFormData();
+        var user_id = localStorage.getItem('user_id');
+        if (user_id == formData.director) {
+            api.toast({
+                msg: '指派人不能为自己'
+            });
+            return;
+        }
+        apiAjax({
+            url: '/hybrid/checkToDirector/' + id,
+            type: 'put',
+            data: formData
+        }, function (result) {
+            api.toast({
+                msg: result.msg
+            });
+            getData(function (data) {
+                api.execScript({
+                    name: 'root',
+                    frameName: 'meetOrders',
+                    script: 'updateItem("' + data.id + '", "' + data.purpose + '", "' + data.state + '");'
+                });
+            });
+        });
+    }
+
+    // 从会员端撤回
+    function recallFromMember() {
+        var id = api.pageParam.id;
+        apiAjax({
+            url: '/hybrid/recallFromMember/' + id,
+            type: 'put',
+        }, function (result) {
+            api.toast({
+                msg: result.msg
+            });
+            getData(function (data) {
+                api.execScript({
+                    name: 'root',
+                    frameName: 'meetOrders',
+                    script: 'updateItem("' + data.id + '", "' + data.purpose + '", "' + data.state + '");'
+                });
+            });
+        });
+    }
+
+    // 从指派人端撤回
+    function recallFromDirector() {
+        var id = api.pageParam.id;
+        apiAjax({
+            url: '/hybrid/recallFromDirector/' + id,
+            type: 'put',
+        }, function (result) {
+            api.toast({
+                msg: result.msg
+            });
+            getData(function (data) {
+                api.execScript({
+                    name: 'root',
+                    frameName: 'meetOrders',
+                    script: 'updateItem("' + data.id + '", "' + data.purpose + '", "' + data.state + '");'
+                });
+            });
+        });
+    }
+
+    // 重新填写
+    function reStart() {
+        var id = api.pageParam.id;
+        apiAjax({
+            url: '/hybrid/reStart/' + id,
+            type: 'put',
+        }, function (result) {
+            api.toast({
+                msg: result.msg
+            });
+            getData(function (data) {
+                api.execScript({
+                    name: 'root',
+                    frameName: 'meetOrders',
+                    script: 'updateItem("' + data.id + '", "' + data.purpose + '", "' + data.state + '");'
+                });
+            });
+        });
+    }
+</script>
+
+</html>

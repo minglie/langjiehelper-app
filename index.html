@@ -1,0 +1,513 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>底部导航</title>
+    <link rel="stylesheet" type="text/css" href="./css/api.css" />
+    <link rel="stylesheet" type="text/css" href="./css/aui.css" />
+    <link rel="stylesheet" type="text/css" href="./css/style.css" />
+    <link rel="stylesheet" type="text/css" href="css/iconfont/iconfont.css" />
+    <style>
+        header {
+            background-color: #f2f2f2;
+        }
+
+        header ul li {
+            height: 44px;
+            line-height: 44px;
+            text-align: center;
+            display: none;
+            color: #323237;
+            position: relative;
+            font-size: 18px;
+        }
+
+        header ul li.active {
+            display: block;
+        }
+
+        #footer {
+            background-color: #f2f2f2;
+        }
+
+        #footer ul li {
+            padding-top: 10px;
+            padding-bottom: 8px;
+            background: url() no-repeat center 2px;
+            background-size: auto 30px;
+            text-align: center;
+        }
+
+        #footer ul li.active {
+            color: #6ab494;
+        }
+
+        .iconfont {
+            font-size: 20px;
+            color: #323237;
+        }
+
+        .iconfont p {
+            font-size: 16px;
+        }
+
+        .flex-con {
+            overflow: auto
+        }
+        .aui-active {
+            color: #6ab494!important;
+            border-bottom: 0px!important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="wrap" class="flex-wrap flex-vertical">
+        <header>
+            <ul>
+                <!-- <li class="border-b active" >
+                <div class="aui-bar aui-bar-nav aui-bar-light">
+                    <div class="aui-title">首页</div>
+                </div>
+            </li> -->
+                <li class="border-b active">
+                    <div class="aui-bar aui-bar-nav aui-bar-light">
+                        <div class="aui-title">首页</div>
+                        <a class="aui-pull-right"  onclick="openSideMenu();" tapmode>
+                            <span class="iconfont icon-user"></span>
+                        </a>
+                    </div>
+                </li>
+                <li class="border-b">
+                    <div class="aui-bar aui-bar-nav aui-bar-light">
+                        <div class="aui-title">电话簿</div>
+                        <a class="aui-pull-right batchAddContact" onclick="batchAddContact();" tapmode>
+                            <span class="iconfont icon-logout"></span>
+                        </a>
+                    </div>
+                </li>
+                <li class="border-b">
+                    <div class="aui-bar aui-bar-nav aui-bar-light">
+                        <div class="aui-title">
+                            联系单
+                        </div>
+                        <a class="aui-pull-right showIcon show_filter" tapmode onclick="showPopup('top-right');">
+                            <span class="iconfont icon-filter"></span>
+                        </a>
+                        <a class="aui-pull-right showIcon show_meet" style="display: none;" onclick="createMeetOrder();" tapmode>
+                            <span class="iconfont icon-add"></span>
+                        </a>
+                        <a class="aui-pull-right showIcon show_other" style="display: none;" onclick="createOtherOrder();" tapmode>
+                            <span class="iconfont icon-add"></span>
+                        </a>
+                    </div>
+                </li>
+                <li class="border-b">
+                    <div class="aui-bar aui-bar-nav aui-bar-light">
+                        <div class="aui-title">车辆使用登记</div>
+                        <a class="aui-pull-right" tapmode>
+                            <span class="iconfont icon-add" onclick="createCarRecord();"></span>
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </header>
+        <div id="main" class="flex-con">
+
+        </div>
+        <div id="footer" class="border-t">
+            <ul class="flex-wrap">
+                <li tapmode="hover" onclick="randomSwitchBtn( this );" tapmode class="flex-con iconfont icon-home active">
+                    <p>首页</p>
+                </li>
+                <li tapmode="hover" onclick="randomSwitchBtn( this );" tapmode class="flex-con iconfont icon-phone">
+                    <p>电话簿</p>
+                </li>
+                <li tapmode="hover" onclick="randomSwitchBtn( this );" tapmode class="flex-con iconfont icon-order">
+                    <p>联系单</p>
+                </li>
+                <li tapmode="hover" onclick="randomSwitchBtn( this );" tapmode class="flex-con iconfont icon-car">
+                    <p>车辆</p>
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+
+</html>
+<script type="text/javascript" src="script/api.js"></script>
+<script type="text/javascript" src="script/jquery.min.js"></script>
+<script type="text/javascript" src="script/common.js"></script>
+<script type="text/javascript">
+    var popup;
+    var dataStore = [];
+    apiReady(function() {
+        $api.fixStatusBar($api.dom('header'));
+        api.setStatusBarStyle({
+            style: 'dark',
+            color: '#6ab494'
+        });
+        api.parseTapmode();
+        funIniGroup();
+        getMsg();
+        getCallRecord();
+        setInterval(function() {
+            getMsg();
+            getCallRecord();
+        }, 1000*60);
+        api.addEventListener({
+            name: 'noticeclicked'
+        }, function(ret) {
+            // api.alert({
+            //     msg: JSON.stringify(ret)
+            // });
+        });
+        //短信监听
+        // try{
+        //     var bekeerSMS = api.require('moduleSMS');
+        //     bekeerSMS.startListening({
+        //         time: 0
+        //     }, function(ret, err){
+        //         if (err) {
+        //             var strAddress = ret.strAddress;
+        //             var strbody = ret.strbody;
+        //             var strType = ret.strType;
+        //             var strDate = ret.strDate;
+        //             if(strbody=='连接测试'){
+        //                 api.toast({
+        //                     msg: strbody
+        //                 });
+        //                 apiAjax({
+        //                     url: '/hybrid/test_connect',
+        //                     data: {
+        //                         "test_date": "test_date",
+        //                         "self_phone": localStorage.getItem("phone")
+        //                     }
+        //                 },function(result){});
+        //             }
+        //         }
+        //     });
+        // }catch(e){}
+
+        //来电监听
+        // apiAjax({
+        //     url: '/hybrid/call_in_tip',
+        //     data: {
+        //         "call_phone": 13793133294,
+        //         "incoming_time": '2018-09-18 10:45:22',
+        //         "hang_up_time": time(),
+        //         "self_user_id": localStorage.getItem('user_id'),
+        //         "self_phone": localStorage.getItem('phone')
+        //     }
+        // },function(result){
+        //
+        // });
+        // var myListeningInfo = api.require('myListeningInfo');
+        // var t = 1;
+        // // var incoming_time,hang_up_time;
+        // try {
+        //     myListeningInfo.start(function(ret, err) {
+        //         if (ret.status > 0) {
+        //             if (ret.telType == 1) {
+        //                 localStorage.setItem('incoming_time', time());
+        //                 apiAjax({
+        //                     url: '/hybrid/call_in_tip',
+        //                     data: {
+        //                         "call_phone": ret.phoneNumber,
+        //                         "self_user_id": localStorage.getItem('user_id'),
+        //                         "self_phone": localStorage.getItem('phone'),
+        //                         "incoming_time": time()
+        //                     }
+        //                 }, function(result) {});
+        //             } else if (ret.telType == 2) {
+        //                 var hang_up_time = time();
+        //                 var incoming_time = localStorage.getItem('incoming_time');
+        //                 setTimeout(function() {
+        //                     if (t) {
+        //                         t = 0;
+        //                         apiAjax({
+        //                             url: '/hybrid/call_in',
+        //                             data: {
+        //                                 "call_phone": ret.phoneNumber,
+        //                                 "incoming_time": incoming_time,
+        //                                 "hang_up_time": hang_up_time,
+        //                                 "self_user_id": localStorage.getItem('user_id'),
+        //                                 "self_phone": localStorage.getItem('phone')
+        //                             }
+        //                         }, function(result) {
+        //                             setTimeout(function() {
+        //                                 t = 1;
+        //                                 localStorage.removeItem('incoming_time');
+        //                             }, 2000);
+        //                         });
+        //                     }
+        //                 }, 1000);
+        //             }
+        //         }
+        //     });
+        // } catch (e) {
+        //
+        // }
+    });
+
+    function openOrderFrame(num, obj) {
+        $('.aui-tab-item').removeClass('aui-active');
+        $(obj).addClass('aui-active');
+        var index;
+        if (num == 1) {
+            index = 4;
+        } else if (num == 2 ) {
+            index = 2;
+        } else {
+            index = 5;
+        }
+        api.setFrameGroupIndex({
+            name: 'group',
+            index: index
+        });
+    }
+
+    //获取未读消息
+    function getMsg() {
+        if (!localStorage.getItem('token')) return;
+        apiAjax({
+            url: '/home/notiPost/fromCenterList'
+        }, function(result) {
+            var newDataStore = result.data;
+            if (newDataStore.length == 0&&dataStore.length!=0) {
+              api.execScript({
+                  frameName: 'frame2',
+                  script: 'try{getMsg();}catch(e){try{setTimeout(function(){getMsg();},2000)}catch(e){}}'
+              });
+              return;
+            }
+            if (newDataStore.length == 0) return;
+            if (dataStore.length == 0) {
+                //有新消息
+                hasNewMsg(newDataStore);
+            } else {
+                if (dataStore.length != newDataStore.length) {
+                    //有新消息
+                    hasNewMsg(newDataStore);
+                }
+            }
+        });
+
+        function hasNewMsg(newDataStore) {
+            dataStore = newDataStore;
+            //弹出状态栏通知
+            api.notification({
+                notify: {
+                    title: dataStore[0].NotiPost.title,
+                    content: dataStore[0].NotiPost.content,
+                    extra: {
+                        mailId: dataStore[0].NotiPost.mailId
+                    }
+                }
+            });
+            api.execScript({
+                frameName: 'frame2',
+                script: 'try{getMsg();}catch(e){try{setTimeout(function(){getMsg();},2000)}catch(e){}}'
+            });
+        }
+    }
+
+    function showPopup(location) {
+        api.execScript({
+            frameName: 'frame1',
+            script: 'showPopup();'
+        });
+    }
+
+    function funIniGroup() {
+        var eHeaderLis = $api.domAll('header li'),
+            frames = [{
+                name: 'frame2',
+                url: './html/frame2.html',
+                bgColor: 'rgba(0,0,0,.2)',
+                bounces: false
+            }, {
+                name: 'frame0',
+                url: './html/frame0.html',
+                bgColor: 'rgba(0,0,0,.2)',
+                bounces: false
+            }, {
+                name: 'frame1',
+                url: './html/frame1.html',
+                bgColor: 'rgba(0,0,0,.2)',
+                bounces: false
+            }, {
+                name: 'car_use_record_list',
+                url: './html/frame3.html',
+                bgColor: 'rgba(0,0,0,.2)',
+                bounces: false
+            }, {
+                name: 'meetOrders',
+                url: './html/meetOrders.html',
+                bgColor: 'rgba(0,0,0,.2)',
+                bounces: false
+            }, {
+                name: 'otherOrders',
+                url: './html/otherOrders.html',
+                bgColor: 'rgba(0,0,0,.2)',
+                bounces: false
+            }];
+        // for (var i = 0,len = eHeaderLis.length; i < len; i++) {
+        //         frames.push( {
+        //             name: 'frame'+i,
+        //             url: './html/frame'+i+'.html',
+        //             bgColor : 'rgba(0,0,0,.2)',
+        //             bounces: false
+        //         } )
+        // }
+        api.openFrameGroup({
+            name: 'group',
+            scrollEnabled: false,
+            rect: {
+                x: 0,
+                y: $api.dom('header').offsetHeight,
+                w: api.winWidth,
+                h: $api.dom('#main').offsetHeight
+            },
+            index: 0,
+            frames: frames
+        }, function(ret, err) {
+
+        });
+    }
+
+    // 随意切换按钮
+    function randomSwitchBtn(tag) {
+        // if (tag == $api.dom('#footer li.active')) return;
+        var eFootLis = $api.domAll('#footer li'),
+            eHeaderLis = $api.domAll('header li'),
+            index = 0;
+        for (var i = 0, len = eFootLis.length; i < len; i++) {
+            if (tag == eFootLis[i]) {
+                index = i;
+            } else {
+                $api.removeCls(eFootLis[i], 'active');
+                $api.removeCls(eHeaderLis[i], 'active');
+            }
+        }
+        $api.addCls(eFootLis[index], 'active');
+        $api.addCls(eHeaderLis[index], 'active');
+        if (index == 2) {
+            var ind = $('#tab .aui-active').index();
+            $('.showIcon').hide();
+            $('.show_filter').show();
+            if (ind == 0) {
+                index = 4;
+            } else if (ind == 2) {
+                index = 5;
+            }
+        }
+        api.setFrameGroupIndex({
+            name: 'group',
+            index: index
+        });
+    }
+
+    function createMeetOrder() {
+        api.openWin({
+            name: 'create_meet',
+            url: './html/create_meet_win.html',
+        });
+    }
+
+    function createOtherOrder() {
+        api.openWin({
+            name: 'create_other',
+            url: './html/create_other_win.html',
+        });
+    }
+
+    function createCarRecord() {
+        api.openWin({
+            name: 'create_car_record',
+            url: './html/create_car_record_win.html',
+        });
+    }
+
+    function getCallRecord() {
+        var callRecord = api.require('callRecord');
+        var systemType = api.systemType;
+        if (systemType != 'android') return;
+        callRecord.openCallRecord(function(ret) {
+            if (ret.status) {
+                var recordArr = ret.CallRecord;
+                if (recordArr.length == 0) return;
+                var lastPhone = localStorage.getItem('lastPhone');
+                var lastTime = localStorage.getItem('lastTime');
+                if (lastPhone) {
+                    var newIncomingPhone = [];
+                    for (var i = 0; i < 50; i++) {
+                        var item = recordArr.pop();
+                        if (item) {
+                            if (item.number == lastPhone && item.time == lastTime) {
+                                break;
+                            } else {
+                                newIncomingPhone.push({
+                                    phone: item.number,
+                                    time: item.time,
+                                    duration: item.duration,
+                                    type: item.type,
+                                });
+                            }
+                        }
+                    }
+                    if (newIncomingPhone.length != 0) {
+                        // 把电话记录发送给服务器
+                        apiAjax({
+                            url: '/hybrid/addCallRecord',
+                            type: 'post',
+                            data: {
+                                newIncomingPhone: JSON.stringify(newIncomingPhone),
+                                self_user_id: localStorage.getItem('user_id'),
+                                self_phone: localStorage.getItem('phone')
+                            }
+                        }, function(result) {
+                            localStorage.setItem('lastPhone', newIncomingPhone[0].phone);
+                            localStorage.setItem('lastTime', newIncomingPhone[0].time);
+                        });
+                    }
+                } else {
+                    var item = recordArr.pop();
+                    if (item) {
+                        localStorage.setItem('lastPhone', item.number);
+                        localStorage.setItem('lastTime', item.time);
+                    }
+                }
+            }
+        });
+    }
+
+    function openSideMenu() {
+        var token = localStorage.getItem('token');
+        if (token) {
+            api.execScript({
+                frameName: 'frame2',
+                script: 'logout();'
+            });
+        } else {
+            api.execScript({
+                frameName: 'frame2',
+                script: 'triggerCheckLogin();'
+            });
+        }
+        // api.execScript({
+        //     frameName: 'frame2',
+        //     script: 'showPopup();'
+        // });
+    }
+
+    function batchAddContact() {
+        api.execScript({
+            frameName: 'frame0',
+            script: 'batchAddContact();'
+        });
+    }
+</script>

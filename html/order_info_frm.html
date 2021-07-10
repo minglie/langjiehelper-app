@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>联系单详情</title>
+    <link rel="stylesheet" type="text/css" href="../css/weui.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/iconfont/iconfont.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui-pull-refresh.css" />
+    <style>
+        .input_value {
+            display: none!important;
+        }
+        .tags {
+            background: #68b39b;
+            color: #fff;
+            border-radius: 4px;
+            margin-right: 10px;
+            padding-left: 6px;
+            padding-right: 6px;
+            font-size: 15px;
+        }
+
+        .btnBar {
+            display: none;
+            justify-content: center;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="aui-refresh-content">
+        <div class="aui-content">
+            <div class="aui-content aui-margin-b-15">
+                <ul class="aui-list aui-form-list">
+                    <li class="aui-list-header">详情</li>
+                </ul>
+                <div class="btnBar">
+                    <button onclick="sub();" class="aui-btn aui-btn-info">提交</button>
+                    <button onclick="closeOrder();" style="margin-left: 40px;" class="aui-btn">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://res.wx.qq.com/open/libs/weuijs/1.0.0/weui.min.js"></script>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/aui-pull-refresh.js"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script type="text/javascript" src="../script/aui-dialog.js" ></script>
+<script type="text/javascript" src="../script/order_info.js"></script>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>开发</title>
+    <!-- <link rel="stylesheet" type="text/css" href="../css/api.css" /> -->
+    <link rel="stylesheet" type="text/css" href="../css/weui.min.css" />
+    <link rel="stylesheet" type="text/css" href="../css/iconfont/iconfont.css" />
+    <link rel="stylesheet" type="text/css" href="../css/aui-pull-refresh.css" />
+    <link rel="stylesheet" type="text/css" href="../css/aui.css" />
+    <style>
+        .signWrap {
+            height: 280px;
+            overflow: auto;
+            padding: 0!important;
+        }
+        .signSession {
+            display: flex!important;
+            /*height: 40px;*/
+            text-align: center;
+        }
+        .signSession>div {
+            flex: 1;
+            padding-top: 8px;
+        }
+        .sign-wrap {
+            height: 176px;
+        }
+        .sign-checkin {
+            border-radius: 4px;
+        }
+        .wrap-duty {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding-top: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+        .wrap-duty>div {
+            flex: 1;
+            text-align: center;
+        }
+        .aui-list label {
+            min-width: 100px;
+            text-align: left;
+        }
+        .sign,.affair,.mail,.appSign {
+            display: flex;
+        }
+        .sign>div,.affair>div,.mail>div,.appSign>div {
+            flex: 1;
+            text-align: center;
+        }
+        .moreBar {
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+            color: #999;
+            padding: 3px;
+            font-size: 12px;
+        }
+        .more {
+            display: none;
+        }
+        .weui-btn_plain-primary {
+            background: #4CAF50;
+            color: #fff;
+        }
+        /*.aui-popup-content {
+            min-height: 2rem;
+            border: 1px solid #999;
+        }
+        .aui-mask {
+            background: rgb(0,0,0,0)!important;
+        }*/
+    </style>
+</head>
+
+<body>
+    <div class="aui-refresh-content">
+        <div class="aui-content aui-margin-b-15">
+            <ul class="aui-list aui-media-list">
+                <li class="aui-list-header">
+                    考勤
+                </li>
+                <li class="signWrap">
+                    <div class="signSession">
+                        <div>
+                            <p>工时</p>
+                            <p class="workTime"></p>
+                        </div>
+                        <div>
+                            <p>加班工时</p>
+                            <p class="overWorkTime"></p>
+                        </div>
+                        <div>
+                            <p>值日</p>
+                            <p class="onDutyTime"></p>
+                        </div>
+                        <div>
+                            <p>规定工时</p>
+                            <p class="total"></p>
+                        </div>
+                    </div>
+                    <div class="more">
+                        <div class="mail" style="border-top: 1px solid #eee">
+                            <div>
+                                <p>收到推送</p>
+                                <p class="received"></p>
+                            </div>
+                            <div>
+                                <p>未读</p>
+                                <p class="notRead"></p>
+                            </div>
+                            <div>
+                                <p>收到@</p>
+                                <p class="atMe"></p>
+                            </div>
+                            <div>
+                                <p>未答复</p>
+                                <p class="notReply"></p>
+                            </div>
+                        </div>
+                        <div class="affair" style="border-top: 1px solid #eee">
+                            <div>
+                                <p>参与事务</p>
+                                <p class="joinAffair"></p>
+                            </div>
+                            <div>
+                                <p>未更新</p>
+                                <p class="notUpdate"></p>
+                            </div>
+                            <div>
+                                <p>负责事务</p>
+                                <p class="directotAffair"></p>
+                            </div>
+                            <div>
+                                <p>逾期</p>
+                                <p class="overTime"></p>
+                            </div>
+                        </div>
+                        <div class="appSign" style="border-top: 1px solid #eee">
+                            <div>
+                                <p>进度警告</p>
+                                <p class="warnProgress"></p>
+                            </div>
+                            <div class>
+                                <p>服务工作日</p>
+                                <p class="serverDuty"></p>
+                            </div>
+                            <div>
+                                <p>APP未签到</p>
+                                <p class="appNotSign"></p>
+                            </div>
+                            <div></div>
+                        </div>
+                    </div>
+                    <div class="moreBar" onclick="more();">更多</div>
+                    <div class="sign-wrap">
+
+                    </div>
+                </li>
+                <li class="aui-list-header">
+                    未处理消息
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="script/api.js"></script>
+<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=5pMjYGfmzv0AlkNkwxyRTWWCNwpHeqlc"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script type="text/javascript" src="../script/aui-dialog.js"></script>
+<script type="text/javascript" src="../script/aui-popup-new.js"></script>
+<script src="../script/aui-pull-refresh.js"></script>
+<script type="text/javascript" src="../script/user.js"></script>
+<script type="text/javascript" src="../script/affair.js"></script>
+
+</html>

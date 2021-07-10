@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>新合同创建</title>
+    <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+    <style>
+        html, body {
+            height: 100%;
+        }
+        .aui-icon-left {
+            font-size: 16px!important;
+            color: #323237!important;
+            position: relative;
+            top: 2px;
+            left: 2px;
+            font-weight: bolder!important;
+        }
+        #main {
+            height: 100%;
+        }
+        header .aui-pull-right {
+            color: #323237;
+        }
+    </style>
+</head>
+<body>
+    <div id="wrap" class="flex-wrap flex-vertical">
+        <header class="aui-bar aui-bar-nav aui-bar-light">
+            <a class="aui-pull-left aui-btn">
+                <span class="aui-iconfont aui-icon-left"></span>
+            </a>
+            <div class="aui-title">新合同登记</div>
+        </header>
+        <div id="main">
+            <div class="aui-content aui-margin-b-15">
+                <ul class="aui-list aui-form-list">
+                    <li class="aui-list-header">详情</li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">
+                                新合同号
+                            </div>
+                            <div class="aui-list-item-input">
+                                <input type="text" name="contract_no" placeholder="请输入新合同号">
+                            </div>
+                        </div>
+                    </li>
+                    <div style="width: 100%; height: 100px;margin: auto;text-align: center;padding-top: 25px;">
+                        <div class="aui-btn" onclick="subNewContractNo();">提交</div>
+                    </div>
+                    <div style="width: 100%; height: 50px;border-bottom: 1px solid #eee;">
+
+                    </div>
+                    <li class="aui-list-header">辅助功能</li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">
+                                公司名
+                            </div>
+                            <div class="aui-list-item-input">
+                                <input type="text" name="company" onchange="searchLatestContractnoByCpy();" placeholder="请输入关键字">
+                            </div>
+                        </div>
+                    </li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">
+                                最近合同号
+                            </div>
+                            <div class="aui-list-item-input">
+                                <input type="text" name="latest_contract_no" disabled>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script type="text/javascript">
+    var cus_abb;
+    apiReady(function(){
+        $api.fixStatusBar( $api.dom('header') );
+        $('.aui-pull-left').click(function(){
+            api.closeWin();
+        });
+    });
+
+    function searchLatestContractnoByCpy() {
+        cus_abb = '';
+        $('input[name=latest_contract_no]').val('');
+        var company = $('input[name=company]').val();
+        if (!company) return;
+        apiAjax({
+            url: '/hybrid/searchLatestContractNo',
+            data: {
+                keywords: company,
+            },
+        },function(res){
+            if (res.code == -1) {
+                api.toast({
+                    msg: res.msg,
+                });
+            } else {
+                $('input[name=latest_contract_no]').val(res.data.contract_no);
+                cus_abb = res.data.abb;
+                guessNo(res.data.contract_no);
+            }
+        });
+    }
+
+    function guessNo(no) {
+        var splitArr = no.split('-');
+        if (splitArr.length === 2 && splitArr[1].length === 6 && /^\d+$/.test(splitArr[1])) {
+            var yy = splitArr[1].slice(0, 2);
+            var nowyy = String(new Date().getFullYear()).slice(2, 4);
+            var nowmm = String(new Date().getMonth() + 1);
+            nowmm = nowmm.length === 1 ? '0' + nowmm : nowmm;
+            var newNo;
+            if (yy != nowyy) {
+                newNo = splitArr[0] + '-' + nowyy + nowmm + '01';
+            } else {
+                var no = splitArr[1].slice(4, 6);
+                no = String(parseInt(no) + 1);
+                no = no.length === 1 ? '0' + no : no;
+                newNo = splitArr[0] + '-' + nowyy + nowmm + no;
+            }
+            $('input[name=contract_no]').val(newNo);
+        }
+    }
+
+    function subNewContractNo() {
+        var text = $('input[name=contract_no]').val();
+        text = text.toUpperCase();
+        if (!text) {
+            return;
+        }
+        apiAjax({
+            url: '/hybrid/createContractNo',
+            type: 'post',
+            data: {
+                contract_no: text,
+                cus_abb: cus_abb,
+            },
+        },function(res){
+            api.hideProgress();
+            api.toast({
+                msg: res.msg
+            });
+        });
+    }
+</script>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>车辆使用登记</title>
+    <link rel="stylesheet" type="text/css" href="../css/iconfont/iconfont.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/user.css"/>
+</head>
+<body>
+    <!-- <div class="user">
+        <img src="../image/default_member.jpg" alt="">
+        <p class="name" tapmode>点击登陆</p>
+    </div>
+    <section class="aui-grid aui-margin-b-15">
+        <div class="aui-row">
+            <div class="aui-col-xs-4" tapmode onclick="addContacts();">
+                <i class="iconfont icon-user"></i>
+                <div class="aui-grid-label">添加联系人</div>
+            </div>
+            <div class="aui-col-xs-4" tapmode>
+                <i class="iconfont icon-setting"></i>
+                <div class="aui-grid-label">设置</div>
+            </div>
+            <div class="aui-col-xs-4" tapmode onclick="logout();">
+                <i class="iconfont icon-logout"></i>
+                <div class="aui-grid-label">注销</div>
+            </div>
+        </div>
+    </section> -->
+    <div class="aui-refresh-content">
+        <div class="aui-content">
+            <div class="aui-content aui-margin-b-15">
+                <ul class="aui-list aui-media-list">
+
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="script/api.js"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/aui-dialog.js" ></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script type="text/javascript" src="../script/aui-scroll.js"></script>
+<script src="../script/aui-pull-refresh.js"></script>
+<!-- <script type="text/javascript" src="../script/user.js"></script> -->
+<script>
+var page = 1, pageSize = 10, isLoading = false, hasMore = true;
+apiReady(function(){
+    api.addEventListener({
+        name:'scrolltobottom',
+        extra:{
+            threshold: 10    //设置距离底部多少距离时触发，默认值为0，数字类型
+        }
+    }, function(ret, err){
+        getList();
+    });
+    triggerCheckLogin();
+});
+
+function originState() {
+    page = 1;
+    isLoading = false;
+    hasMore = true;
+    $('.aui-media-list').html('');
+    triggerCheckLogin();
+}
+
+apiRefresh(function(){
+    originState();
+});
+
+function triggerCheckLogin(){
+    checkLogin(function(){
+        getList();
+    });
+}
+
+function getList() {
+    var userName = localStorage.getItem('username');
+    if(!userName) return;
+    if (isLoading || !hasMore) {
+        return;
+    }
+    isLoading = true;
+    apiAjax({
+        url: '/hybrid/vehicleRegist/getList',
+        data: {
+            page: page,
+            pageSize: pageSize,
+            filter: JSON.stringify({
+                userName: userName,
+            }),
+        }
+    }, function(result) {
+        isLoading = false;
+        page++;
+        var data = result.data.data;
+        if (data.length === 0) {
+            api.toast({ msg: '没有更多了'});
+            hasMore = false;
+            return;
+        }
+        render(data);
+    });
+}
+
+function render(data) {
+    if (page == 2) {
+        $('.aui-media-list').html('');
+    }
+    var str = '';
+    for (var i = 0; i < data.length; i++) {
+        var reason = data[i].reason ? data[i].reason : '';
+        var car_no = data[i].car_no;
+        var create_time = dateTime(data[i].take_time);
+        var use_mile = data[i].use_mile;
+        str += '<li class="aui-list-item aui-list-item-middle" tapmode data-id="'+data[i].id+'" onclick="orderInfo(this);">'+
+                    '<div class="aui-media-list-item-inner">'+
+                        '<div class="aui-list-item-inner aui-list-item-arrow">'+
+                            '<div class="aui-list-item-text">'+car_no+
+                                '<div class="aui-list-item-right">'+create_time+'</div>'+
+                            '</div>'+
+                            '<div class="aui-list-item-text">'+
+                                '<div class="orderPurpose" style="width: 200px;min-height: 26px;overflow: hidden;white-space: nowrap;text-overflow: ellipsis;">'+reason+'</div>'+
+                                '<div class="aui-list-item-right"">'+use_mile+'</div>'+
+                            '</div>'+
+                        '</div>'+
+                    '</div>'+
+                '</li>';
+    }
+    if (page == 2) {
+        $('.aui-media-list').html(str);
+    } else {
+        $('.aui-media-list').append(str);
+    }
+    api.parseTapmode();
+}
+
+function orderInfo(obj) {
+    var id = $(obj).attr('data-id');
+    api.openWin({
+        name: 'car_use_record_info',
+        url: '../html/car_use_record_info_win.html',
+        pageParam: {
+            id: id
+        }
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</script>
+</html>

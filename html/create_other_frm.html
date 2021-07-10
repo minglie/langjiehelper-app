@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>联系单详情</title>
+    <link rel="stylesheet" type="text/css" href="../css/weui.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/iconfont/iconfont.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui-pull-refresh.css" />
+    <style>
+        html, body {
+            height: 100%;
+        }
+        .btnBar {
+            justify-content: center;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .searchList {
+            position: absolute;
+            background: #eee;
+            width: 100%;
+        }
+        .searchList>p {
+            height: 50px;
+            color: #333;
+            border: 1px solid #333;
+        }
+        .unit_block {
+            position: relative;
+        }
+        #searchResult {
+            position: absolute;
+            width: 100%;
+            z-index: 5;
+            margin-top: 0px;
+        }
+        #searchResult .weui-cell {
+            padding-left: 10px;
+            padding-top: 14px;
+            border-left: 1px solid #eee;
+            border-right: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="aui-refresh-content" style="height: 100%;">
+        <div class="aui-content" style="height: 100%;">
+            <div class="aui-content aui-margin-b-15" style="height: 100%;">
+                <ul class="aui-list aui-form-list">
+                    <li class="aui-list-header">详情</li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">联系单位</div>
+                            <div class="aui-list-item-input unit_block" >
+                                <input type="text" name="contact_unit" value="" placeholder="请输入认证单位" oninput="contactUnitChange();">
+                                <!-- <div class="searchList">
+
+                                </div> -->
+                                <div class="weui-cells searchbar-result" id="searchResult">
+
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">联系人</div>
+                            <div class="aui-list-item-input person_block">
+
+                            </div>
+                        </div>
+                    </li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">类型</div>
+                            <div class="aui-list-item-input">
+                                <select name="type">
+                                    <option value="电话" selected>电话</option>
+                                    <option value="见面">见面</option>
+                                    <option value="电子邮件">电子邮件</option>
+                                    <option value="即时通讯">即时通讯</option>
+                                    <option value="其它">其它</option>
+                                </select>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+                <div class="btnBar">
+                    <button tapmode onclick="sub();" class="aui-btn aui-btn-info">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<!-- <script src="https://res.wx.qq.com/open/libs/weuijs/1.0.0/weui.min.js"></script> -->
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/aui-pull-refresh.js"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script type="text/javascript" src="../script/aui-dialog.js" ></script>
+<script type="text/javascript">
+var timer, searchResultArr = [];
+var selectCompany;
+apiReady(function(){
+    
+});
+
+function contactUnitChange() {
+    var v = $('input[name=contact_unit]').val();
+    clearTimeout(timer);
+    timer = setTimeout(function(){
+        if (!v) return;
+        // 搜索相关认证公司
+        searchCompany(v);
+    }, 500);
+}
+
+function searchCompany(v) {
+    apiAjax({
+        url: '/hybrid/searchCompany',
+        data: {
+            keywords: v
+        }
+    },function(result){
+        searchResultArr = result.data;
+        if (result.data.length == 0) {
+            api.toast({
+                msg: '没有更多了'
+            });
+            $('#searchResult').html('');
+            return;
+        }
+        var str = '';
+        // var pickArr = [];
+        for (var i = 0; i < result.data.length; i++) {
+            str += '<div class="weui-cell weui-cell_access" data-company="'+result.data[i].company+'" onclick="pickCompany(this)">'+
+                            '<div class="weui-cell__bd weui-cell_primary">'+
+                                '<p>'+result.data[i].company+'</p>'+
+                            '</div>'+
+                        '</div>'
+            // pickArr.push({
+            //     label: result.data[i].company,
+            //     value: result.data[i].company
+            // });
+        }
+        $('#searchResult').html(str);
+        // weui.picker(pickArr, {
+        //     onConfirm: function(result){
+        //         selectCompany = result[0];
+        //         $('input[name=contact_unit]').val(selectCompany);
+        //         for (var i = 0; i < searchResultArr.length; i++) {
+        //             if (searchResultArr[i].company == selectCompany) {
+        //                 var str = '<select name="contact_name">';
+        //                 for (var j = 0; j < searchResultArr[i].contactArr.length; j++) {
+        //                     str += '<option value="'+searchResultArr[i].contactArr[j].name+'">'+searchResultArr[i].contactArr[j].name+'</option>';
+        //                 }
+        //                 str += '</select>';
+        //                 $('.person_block').html(str);
+        //             }
+        //         }
+        //     }
+        // });
+
+    });
+}
+
+function pickCompany(obj) {
+    var company = $(obj).attr('data-company');
+    selectCompany = company;
+    $('input[name=contact_unit]').val(company);
+    $('#searchResult').html('');
+    for (var i = 0; i < searchResultArr.length; i++) {
+        if (searchResultArr[i].company == company) {
+            var str = '<select name="contact_name">';
+            for (var j = 0; j < searchResultArr[i].contactArr.length; j++) {
+                str += '<option value="'+searchResultArr[i].contactArr[j].name+'-'+searchResultArr[i].contactArr[j].phone+'">'+searchResultArr[i].contactArr[j].name + isMember(searchResultArr[i].contactArr[j]) +'</option>';
+            }
+            str += '</select>';
+            $('.person_block').html(str);
+        }
+    }
+
+    function isMember(items) {
+        if (items.type == 'member') {
+            return '（会员'+items.phone+'）';
+        } else {
+            return '（非会员'+items.phone+'）';
+        }
+    }
+}
+
+function sub() {
+    var company = selectCompany;
+    var contact_name = $('select[name=contact_name]').val().split('-')[0];
+    var type = $('select[name=type]').val();
+    var contact_phone = $('select[name=contact_name]').val().split('-')[1];
+    if (!company || !contact_name) {
+        api.toast({
+            msg: '不能为空'
+        });
+        return;
+    }
+    // for (var i = 0; i < searchResultArr.length; i++) {
+    //     if (searchResultArr[i].company == company) {
+    //         for (var j = 0; j < searchResultArr[i].contactArr.length; j++) {
+    //             if (searchResultArr[i].contactArr[j].name == contact_name) {
+    //                 contact_phone = searchResultArr[i].contactArr[j].phone;
+    //             }
+    //         }
+    //     }
+    // }
+    $('.aui-btn-info').attr('disabled', 'disabled');
+    apiAjax({
+        url: '/hybrid/otherOrder',
+        type: 'post',
+        data: {
+            company: company,
+            contact_name: contact_name,
+            contact_phone: contact_phone,
+            type: type,
+        }
+    },function(result){
+        api.toast({
+            msg: result.msg
+        });
+        api.execScript({
+            name: 'root',
+            frameName: 'otherOrders',
+            script: 'originState();'
+        });
+
+        setTimeout(function(){
+            api.closeWin();
+        }, 500);
+    });
+}
+</script>
+</html>

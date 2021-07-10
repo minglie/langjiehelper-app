@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="../css/weui.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/iconfont/iconfont.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui-pull-refresh.css" />
+    <style>
+        html, body {
+            height: 100%;
+        }
+        .btnBar {
+            justify-content: center;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .searchList {
+            position: absolute;
+            background: #eee;
+            width: 100%;
+        }
+        .searchList>p {
+            height: 50px;
+            color: #333;
+            border: 1px solid #333;
+        }
+        .unit_block {
+            position: relative;
+        }
+        #searchResult {
+            position: absolute;
+            width: 100%;
+            z-index: 5;
+            margin-top: 0px;
+        }
+        #searchResult .weui-cell {
+            padding-left: 10px;
+            padding-top: 14px;
+            border-left: 1px solid #eee;
+            border-right: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="aui-refresh-content" style="height: 100%;">
+        <div class="aui-content" style="height: 100%;">
+            <div class="aui-content aui-margin-b-15" style="height: 100%;">
+                <ul class="aui-list aui-form-list">
+                    <li class="aui-list-header">详情</li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">车牌号</div>
+                            <div class="aui-list-item-input">
+                                <select name="car_no" onchange="carNoChange()">
+
+                                </select>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">拿车时间</div>
+                            <div class="aui-list-item-input take_time" onclick="setTakeTime(this);">
+
+                            </div>
+                        </div>
+                    </li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">拿车行程</div>
+                            <div class="aui-list-item-input">
+                                <input type="text" name="take_mile" />
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+                <div class="btnBar">
+                    <button tapmode onclick="sub();" class="aui-btn aui-btn-info">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://res.wx.qq.com/open/libs/weuijs/1.0.0/weui.min.js"></script>
+<script type="text/javascript" src="../script/api.js"></script>
+<script src="../script/aui-pull-refresh.js"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script type="text/javascript" src="../script/aui-dialog.js" ></script>
+<script>
+apiReady(function(){
+    fetchTotalCarNo();
+    var date = time();
+    date = date.slice(0, date.length-3);
+    $('.take_time').html(date);
+});
+
+function fetchTotalCarNo() {
+    apiAjax({
+        url: '/home/goods/list',
+        data: {
+            page: 1,
+            num: 30,
+            keywords: '',
+            order: 'albumUpdateTime',
+            filter: JSON.stringify({
+                "myGoods": "所有物品",
+                "goodsType": "车辆",
+                "location":"",
+                "management":"",
+                "isBorrow":"",
+                "borrowStatus":"",
+                "isdel":"在库",
+                "events":"借用"
+            })
+        }
+    }, function (result) {
+        var carNoArr = [];
+        result.data.data.forEach(function(items){
+            carNoArr.push(items.serialNo);
+        });
+        var str = '';
+        for (var i = 0; i < carNoArr.length; i++) {
+            str += '<option value="'+carNoArr[i]+'">'+carNoArr[i]+'</option>';
+        }
+        $('select[name=car_no]').html(str);
+        fetchPrevMile(carNoArr[i]);
+    });
+}
+
+function fetchPrevMile(car_no) {
+    apiAjax({
+        url: '/hybrid/vehicleRegist/getPrevMile',
+        data: {
+            car_no: car_no
+        }
+    }, function (result) {
+        var mile = result.data;
+        $('input[name=take_mile]').val(mile);
+    });
+}
+
+function carNoChange() {
+    var v = $('select[name=car_no]').val();
+    fetchPrevMile(v);
+}
+
+function sub() {
+    var form_data = {
+        car_no: $('select[name=car_no]').val(),
+        take_time: $('.take_time').html(),
+        take_mile: $('input[name=take_mile]').val()
+    };
+    apiAjax({
+        url: '/hybrid/vehicleRegist/create',
+        type: 'post',
+        data: form_data
+    }, function (result) {
+        api.toast({ msg: result.msg });
+        api.execScript({
+            name: 'root',
+            frameName: 'car_use_record_list',
+            script: 'originState();'
+        });
+        setTimeout(function () {
+            api.closeWin();
+        }, 1000);
+    });
+}
+
+function openPicker(type, date, title, cb) {
+    api.openPicker({
+        type: type,
+        date: date,
+        title: title
+    }, function(ret, err) {
+        cb(ret);
+    });
+}
+
+function dateFormat(ret) {
+    var year = ret.year;
+    var month = Number(ret.month) < 10 ? '0' + ret.month : ret.month;
+    var day = Number(ret.day) < 10 ? '0' + ret.day : ret.day;
+    var hour = Number(ret.hour) < 10 ? '0' + ret.hour : ret.hour;
+    var minute = Number(ret.minute) < 10 ? '0' + ret.minute : ret.minute;
+    return year + '-' + month + '-' + day + ' ' + hour + ':' + minute;
+}
+
+function setTakeTime(obj) {
+    var date = $(obj).html();
+    openPicker('date', date, '选择拿车时间', function(ret) {
+        var year = ret.year;
+        var month = ret.month;
+        var day = ret.day;
+        openPicker('time', date, '选择拿车时间', function(ret) {
+            ret.year = year;
+            ret.month = month;
+            ret.day = day;
+            $(obj).html(dateFormat(ret));
+        });
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+</script>
+</html>

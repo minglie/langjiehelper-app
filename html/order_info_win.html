@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>联系单详情</title>
+    <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/aui.css"/>
+    <!-- <link rel="stylesheet" type="text/css" href="../css/style.css"/> -->
+    <style>
+        html,body {
+            height: 100%;
+        }
+        .aui-icon-left {
+            font-size: 16px!important;
+            color: #323237!important;
+            position: relative;
+            top: 2px;
+            left: 2px;
+            font-weight: bolder!important;
+        }
+        #main {
+            height: 100%;
+        }
+        header .aui-pull-right {
+            color: #323237;
+        }
+    </style>
+</head>
+<body>
+    <div id="wrap" class="flex-wrap flex-vertical">
+        <header class="aui-bar aui-bar-nav aui-bar-light">
+            <a class="aui-pull-left aui-btn">
+                <span class="aui-iconfont aui-icon-left"></span>
+            </a>
+            <div class="aui-title">电话联系单详情</div>
+            <!-- <a class="aui-pull-right" onclick="edit();">
+                编辑
+            </a> -->
+        </header>
+        <div id="main">
+
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../script/api.js"></script>
+<script type="text/javascript" src="../script/jquery.min.js"></script>
+<script type="text/javascript" src="../script/common.js"></script>
+<script>
+    apiReady(function(){
+        $api.fixStatusBar( $api.dom('header') );
+        var id = api.pageParam.id;
+        $('#main').height($api.dom('body').offsetHeight-$api.dom('header').offsetHeight);
+        api.openFrame({
+            name: 'order_info_frm',
+            url: './order_info_frm.html',
+            rect: {
+                x: 0,
+                y: $api.dom('header').offsetHeight,
+                w: api.winWidth,
+                h: $api.dom('#main').offsetHeight
+            },
+            pageParam: {
+                id: id
+            }
+        });
+    });
+    $('.aui-pull-left').click(function(){
+        api.closeWin();
+    });
+    function edit(){
+        api.execScript({
+            name: 'order_info',
+            frameName: 'order_info_frm',
+            script: 'edit();'
+        });
+    }
+    function sub(){
+        api.execScript({
+            name: 'order_info',
+            frameName: 'order_info_frm',
+            script: 'sub();'
+        });
+    }
+    function changeStatusSub(){
+        $('.aui-pull-right').html('提交');
+        $('.aui-pull-right').attr('onclick','sub();');
+    }
+    function changeStatusEdit(){
+        $('.aui-pull-right').html('编辑');
+        $('.aui-pull-right').attr('onclick','edit();');
+    }
+</script>
+</html>
